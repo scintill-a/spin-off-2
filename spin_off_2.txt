@@ -3,9 +3,13 @@ var toRadians = function(deg) {
     return deg * Math.PI / 180;
 };
 
-// === Key Tracking ===
+// === Global Variables ===
 var keys = {};
+var fireKeys = {};
+var projectiles = [];
+var state = "menu";
 
+// === Key Tracking ===
 keyPressed = function() {
     keys[keyCode] = true;
 };
@@ -14,26 +18,50 @@ keyReleased = function() {
     keys[keyCode] = false;
 };
 
+// === Projectile Class ===
+var Projectile = function(x, y, angleDeg, color) {
+    this.x = x;
+    this.y = y;
+    this.angleRad = toRadians(angleDeg);
+    this.speed = 5;
+    this.color = color;
+};
+
+Projectile.prototype.update = function() {
+    this.x += Math.cos(this.angleRad) * this.speed;
+    this.y += Math.sin(this.angleRad) * this.speed;
+};
+
+Projectile.prototype.draw = function() {
+    fill(this.color);
+    noStroke();
+    ellipse(this.x, this.y, 10, 10);
+};
+
 // === Player Class ===
-var Player = function(x, y, leftKey, rightKey, baseAngle, color) {
+var Player = function(x, y, leftKey, rightKey, fireKey, baseAngle, color) {
     this.x = x;
     this.y = y;
     this.vx = 0;
     this.leftKey = leftKey;
     this.rightKey = rightKey;
+    this.fireKey = fireKey;
     this.baseAngle = baseAngle; // 270 for bottom, 90 for top
     this.color = color;
+
+    this.lastShotTime = -Infinity;
+    this.cooldown = 2000; // 2 seconds in milliseconds
 
     this.indicator = {
         angle: 0,
         direction: 1,
         range: 60,
-        speed: 3
+        speed: 2
     };
 };
 
 Player.prototype.update = function() {
-    // Handle movement
+    // Movement
     if (keys[this.leftKey]) {
         this.vx = -2;
     } else if (keys[this.rightKey]) {
@@ -44,7 +72,7 @@ Player.prototype.update = function() {
 
     this.x = constrain(this.x + this.vx, 25, 375);
 
-    // Update indicator angle
+    // Indicator swing
     var ind = this.indicator;
     ind.angle += ind.speed * ind.direction;
     if (ind.angle > ind.range || ind.angle < -ind.range) {
@@ -57,7 +85,7 @@ Player.prototype.draw = function() {
     fill(this.color);
     ellipse(this.x, this.y, 50, 50);
 
-    // Draw indicator line
+    // Draw aiming line
     var angleDeg = this.baseAngle + this.indicator.angle;
     var angleRad = toRadians(angleDeg);
     var tipX = this.x + Math.cos(angleRad) * 60;
@@ -66,9 +94,39 @@ Player.prototype.draw = function() {
     stroke(this.color);
     strokeWeight(3);
     line(this.x, this.y, tipX, tipY);
+
+    // Cooldown indicator
+    var now = millis();
+    var remaining = this.cooldown - (now - this.lastShotTime);
+    if (remaining > 0) {
+        fill(255, 0, 0);
+        textAlign(CENTER);
+        textSize(12);
+        text("Cooldown", this.x, this.y - 35);
+    }
 };
 
-// === Menu ===
+Player.prototype.fire = function() {
+    var now = millis();
+    if (keys[this.fireKey]) {
+        if (!fireKeys[this.fireKey]) {
+            fireKeys[this.fireKey] = true;
+
+            if (now - this.lastShotTime >= this.cooldown) {
+                var angle = this.baseAngle + this.indicator.angle;
+                var tipX = this.x + Math.cos(toRadians(angle)) * 60;
+                var tipY = this.y + Math.sin(toRadians(angle)) * 60;
+
+                projectiles.push(new Projectile(this.x, this.y, angle, this.color));
+                this.lastShotTime = now;
+            }
+        }
+    } else {
+        fireKeys[this.fireKey] = false;
+    }
+};
+
+// === Menu Screen ===
 var drawMenu = function() {
     background(220);
     textAlign(CENTER, CENTER);
@@ -84,9 +142,6 @@ var drawMenu = function() {
     text("Play", 200, 245);
 };
 
-// === Game State ===
-var state = "menu";
-
 mousePressed = function() {
     if (state === "menu" && mouseX > 150 && mouseX < 250 && mouseY > 220 && mouseY < 270) {
         state = "game";
@@ -94,19 +149,27 @@ mousePressed = function() {
 };
 
 // === Players ===
-var player1 = new Player(200, 350, 65, 68, 270, color(0));   // A & D keys
-var player2 = new Player(200, 50, LEFT, RIGHT, 90, color(100)); // Arrow keys
+var player1 = new Player(200, 350, 65, 68, 32, 270, color(0));       // A/D/Space
+var player2 = new Player(200, 50, LEFT, RIGHT, ENTER, 90, color(100)); // Arrows/Enter
 
-// === Draw ===
+// === Game Loop ===
 draw = function() {
     if (state === "menu") {
         drawMenu();
     } else if (state === "game") {
         background(255);
+
         player1.update();
         player2.update();
-
+        player1.fire();
+        player2.fire();
         player1.draw();
         player2.draw();
+
+        for (var i = 0; i < projectiles.length; i++) {
+            var p = projectiles[i];
+            p.update();
+            p.draw();
+        }
     }
 };
