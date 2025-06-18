@@ -4,7 +4,7 @@
 - Health bar
 - Projectile fire
 - Projectile hit  and health mechanics (ability health cost and damage)
-- Flash
+- Spells [Flash, Heal, Barrier..]
 - Scutler
 - Background
 - UI
