@@ -1,6 +1,6 @@
-~Player and movement~
-~Projectile direction~
-~Menu~
+- ~Player and movement~
+- ~Projectile direction~
+- ~Menu~
 - Health bar
 - Projectile fire
 - Projectile hit  and health mechanics (ability health cost and damage)
