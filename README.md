@@ -2,8 +2,8 @@
 - ~Projectile direction~
 - ~Menu~
 - Health bar
-- Projectile fire
-- Projectile hit  and health mechanics (ability health cost and damage)
+- ~Projectile fire~
+- Projectile hit and health mechanics (ability health cost and damage)
 - Spells [Flash, Heal, Barrier..]
 - Scutler
 - Background
