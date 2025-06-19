@@ -115,14 +115,40 @@ Player.prototype.draw = function() {
     stroke(this.color);
     ellipse(this.x, this.y, 50, 50);
 
-    var now = millis();
-    var remaining = this.cooldown - (now - this.lastShotTime);
-    if (remaining > 0) {
-        fill(255, 0, 0);
-        textAlign(CENTER);
-        textSize(12);
-        text("Cooldown", this.x, this.y - 35);
+    // === Cooldown Icon ===
+    var iconSize = 30;
+    var iconX = 298;
+    var iconY = this.baseAngle === 270 ? this.y + 40 : this.y - 70;
+
+    // Draw square icon background
+    stroke(80);
+    strokeWeight(2);
+    fill(50);
+    rect(iconX, iconY, iconSize, iconSize, 5);
+
+    // Draw cleaver-like shape (stylized)
+    noStroke();
+    fill(180);
+    beginShape();
+    vertex(iconX + 8, iconY + 8);
+    vertex(iconX + 20, iconY + 5);
+    vertex(iconX + 22, iconY + 18);
+    vertex(iconX + 10, iconY + 25);
+    vertex(iconX + 8, iconY + 20);
+    endShape(CLOSE);
+
+    // Draw cooldown overlay bar
+    var elapsed = millis() - this.lastShotTime;
+    var pct = constrain(elapsed / this.cooldown, 0, 1);
+
+    if (pct < 1) {
+        fill(255, 150, 0, 150);
+        rect(iconX, iconY + (1 - pct) * iconSize, iconSize, iconSize * pct);
+    } else {
+        fill(0, 255, 0, 100);
+        rect(iconX, iconY, iconSize, iconSize);
     }
+
 };
 Player.prototype.fire = function() {
     var now = millis();
