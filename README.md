@@ -1,7 +1,7 @@
 - ~Player and movement~
 - ~Projectile direction~
 - ~Menu~
-- Health bar
+- ~Health bar~
 - ~Projectile fire~
 - Projectile hit and health mechanics (ability health cost and damage)
 - Spells [Flash, Heal, Barrier..]
