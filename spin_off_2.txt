@@ -53,7 +53,7 @@ var Projectile = function(x, y, angleDeg, color, owner) {
     this.x = x;
     this.y = y;
     this.angleRad = toRadians(angleDeg);
-    this.speed = 5;
+    this.speed = 8;
     this.color = color;
     this.owner = owner;
 };
@@ -157,7 +157,7 @@ Player.prototype.fire = function() {
             fireKeys[this.fireKey] = true;
             if (now - this.lastShotTime >= this.cooldown) {
                 var angle = this.baseAngle + this.indicator.angle;
-                projectiles.push(new Projectile(this.x, this.y, angle, this.color, this));
+                projectiles.push(new Projectile(this.x, this.y, angle, color(0), this));
                 this.lastShotTime = now;
                 this.health = max(1, this.health - 10);
             }
@@ -169,11 +169,11 @@ Player.prototype.fire = function() {
 
 // === Menu Screen ===
 var drawMenu = function() {
-    background(220);
+    background(111, 116, 128);
     textAlign(CENTER, CENTER);
-    textSize(36);
+    textSize(100);
     fill(0);
-    text("HEARTBLAST", 200, 50);
+    text("86", 200, 70);
 
     fill(0, 150, 255);
     rect(150, 310, 100, 50, 10);
@@ -187,23 +187,23 @@ var drawMenu = function() {
 
     var p1X = 80;
     var p1Y = 170;
-    fill(0);
+    fill(color(173, 173, 149));
     ellipse(p1X, p1Y, 50, 50);
     noStroke();
     fill(0);
     textSize(14);
     textAlign(CENTER, TOP);
-    text("Player 1\n(Black)\nMove: A / D\nShoot: SPACE", p1X, p1Y + 35);
+    text("Juggernaut\n(Black)\nMove: A / D\nShoot: SPACE", p1X, p1Y + 35);
 
     var p2X = 320;
     var p2Y = 170;
-    fill(100);
+    fill(color(191, 230, 230));
     ellipse(p2X, p2Y, 50, 50);
     noStroke();
     fill(0);
     textSize(14);
     textAlign(CENTER, TOP);
-    text("Player 2\n(Gray)\nMove: ← / →\nShoot: ENTER", p2X, p2Y + 35);
+    text("Legion\n(Gray)\nMove: ← / →\nShoot: ENTER", p2X, p2Y + 35);
 };
 
 var drawBackground = function() {
@@ -235,8 +235,6 @@ var drawGameOver = function() {
 
 var drawCountdown = function() {
     drawBackground();
-    player1.draw();
-    player2.draw();
 
     var elapsed = (millis() - countdownStartTime) / 1000;
     var timeLeft = ceil(countdown - elapsed);
@@ -251,8 +249,8 @@ var drawCountdown = function() {
     }
 };
 
-var player1 = new Player(200, 315, 65, 68, 32, 270, color(0));
-var player2 = new Player(200, 85, LEFT, RIGHT, ENTER, 90, color(100));
+var player1 = new Player(200, 315, 65, 68, 32, 270, color(173, 173, 149));
+var player2 = new Player(200, 85, LEFT, RIGHT, ENTER, 90, color(191, 230, 230));
 
 mousePressed = function() {
     if (state === "menu") {
@@ -263,8 +261,8 @@ mousePressed = function() {
         }
     } else if (state === "gameover") {
         if (mouseX > 100 && mouseX < 300 && mouseY > 200 && mouseY < 250) {
-            player1 = new Player(200, 315, 65, 68, 32, 270, color(0));
-            player2 = new Player(200, 85, LEFT, RIGHT, ENTER, 90, color(100));
+            player1 = new Player(200, 315, 65, 68, 32, 270, color(173, 173, 149));
+            player2 = new Player(200, 85, LEFT, RIGHT, ENTER, 90, color(191, 230, 230));
             projectiles = [];
             fireKeys = {};
             winner = "";
@@ -273,8 +271,8 @@ mousePressed = function() {
             countdownStartTime = millis();
         }
         if (mouseX > 100 && mouseX < 300 && mouseY > 270 && mouseY < 320) {
-            player1 = new Player(200, 315, 65, 68, 32, 270, color(0));
-            player2 = new Player(200, 85, LEFT, RIGHT, ENTER, 90, color(100));
+            player1 = new Player(200, 315, 65, 68, 32, 270, color(173, 173, 149));
+            player2 = new Player(200, 85, LEFT, RIGHT, ENTER, 90, color(191, 230, 230));
             projectiles = [];
             fireKeys = {};
             winner = "";
@@ -316,10 +314,10 @@ draw = function() {
         drawHealthBar(10, 10, player2.health);
 
         if (player1.health <= 0) {
-            winner = "Player 2";
+            winner = "Legion";
             state = "gameover";
         } else if (player2.health <= 0) {
-            winner = "Player 1";
+            winner = "Juggernaut";
             state = "gameover";
         }
     } else if (state === "gameover") {
