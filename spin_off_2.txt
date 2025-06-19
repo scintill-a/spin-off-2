@@ -8,30 +8,56 @@ var keys = {};
 var fireKeys = {};
 var projectiles = [];
 var state = "menu";
+var winner = "";
+var maxHealth = 100;
+
+// === Health Bar ===
+var drawHealthBar = function(x, y, health) {
+    var healthRatio = health / maxHealth;
+    var barW = 100;
+    var barH = 15;
+    var borderRadius = 8;
+
+    stroke(80, 255, 255);
+    strokeWeight(3);
+    fill(20, 20, 30);
+    rect(x, y, barW, barH, borderRadius);
+
+    noStroke();
+    fill(0, 255, 150, 60);
+    rect(x - 5, y - 5, barW + 10, barH + 10, borderRadius + 5);
+
+    var healthColor = lerpColor(color(255, 50, 50), color(0, 255, 100), healthRatio);
+    fill(healthColor);
+    rect(x, y, barW * healthRatio, barH, borderRadius);
+
+    fill(255);
+    textSize(16);
+    textAlign(CENTER, CENTER);
+    text(health + " / " + maxHealth + " HP", x + barW / 2, y + barH / 2);
+};
 
 // === Key Tracking ===
 keyPressed = function() {
     keys[keyCode] = true;
 };
-
 keyReleased = function() {
     keys[keyCode] = false;
 };
 
 // === Projectile Class ===
-var Projectile = function(x, y, angleDeg, color) {
+var Projectile = function(x, y, angleDeg, color, owner) {
     this.x = x;
     this.y = y;
     this.angleRad = toRadians(angleDeg);
     this.speed = 5;
     this.color = color;
+    this.owner = owner;
 };
-
 Projectile.prototype.update = function() {
     this.x += Math.cos(this.angleRad) * this.speed;
     this.y += Math.sin(this.angleRad) * this.speed;
 };
-
 Projectile.prototype.draw = function() {
     fill(this.color);
     noStroke();
@@ -46,12 +72,11 @@ var Player = function(x, y, leftKey, rightKey, fireKey, baseAngle, color) {
     this.leftKey = leftKey;
     this.rightKey = rightKey;
     this.fireKey = fireKey;
-    this.baseAngle = baseAngle; // 270 for bottom, 90 for top
+    this.baseAngle = baseAngle;
     this.color = color;
-
+    this.health = maxHealth;
     this.lastShotTime = -Infinity;
-    this.cooldown = 2000; // 2 seconds in milliseconds
-
+    this.cooldown = 2000;
     this.indicator = {
         angle: 0,
         direction: 1,
@@ -59,9 +84,7 @@ var Player = function(x, y, leftKey, rightKey, fireKey, baseAngle, color) {
         speed: 2
     };
 };
-
 Player.prototype.update = function() {
-    // Movement
     if (keys[this.leftKey]) {
         this.vx = -2;
     } else if (keys[this.rightKey]) {
@@ -69,33 +92,23 @@ Player.prototype.update = function() {
     } else {
         this.vx = 0;
     }
-
     this.x = constrain(this.x + this.vx, 25, 375);
-
-    // Indicator swing
     var ind = this.indicator;
     ind.angle += ind.speed * ind.direction;
     if (ind.angle > ind.range || ind.angle < -ind.range) {
         ind.direction *= -1;
     }
 };
-
 Player.prototype.draw = function() {
-    // Draw player
     fill(this.color);
     ellipse(this.x, this.y, 50, 50);
-
-    // Draw aiming line
     var angleDeg = this.baseAngle + this.indicator.angle;
     var angleRad = toRadians(angleDeg);
     var tipX = this.x + Math.cos(angleRad) * 60;
     var tipY = this.y + Math.sin(angleRad) * 60;
-
     stroke(this.color);
     strokeWeight(3);
     line(this.x, this.y, tipX, tipY);
-
-    // Cooldown indicator
     var now = millis();
     var remaining = this.cooldown - (now - this.lastShotTime);
     if (remaining > 0) {
@@ -105,20 +118,16 @@ Player.prototype.draw = function() {
         text("Cooldown", this.x, this.y - 35);
     }
 };
-
 Player.prototype.fire = function() {
     var now = millis();
     if (keys[this.fireKey]) {
         if (!fireKeys[this.fireKey]) {
             fireKeys[this.fireKey] = true;
-
             if (now - this.lastShotTime >= this.cooldown) {
                 var angle = this.baseAngle + this.indicator.angle;
-                var tipX = this.x + Math.cos(toRadians(angle)) * 60;
-                var tipY = this.y + Math.sin(toRadians(angle)) * 60;
-
-                projectiles.push(new Projectile(this.x, this.y, angle, this.color));
+                projectiles.push(new Projectile(this.x, this.y, angle, this.color, this));
                 this.lastShotTime = now;
+                this.health = max(0, this.health - 10); // lose 10 HP on fire
             }
         }
     } else {
@@ -133,32 +142,69 @@ var drawMenu = function() {
     textSize(36);
     fill(0);
     text("Mundo Dodgeball", 200, 100);
-
     fill(0, 150, 255);
     rect(150, 220, 100, 50, 10);
-
     fill(255);
     textSize(20);
     text("Play", 200, 245);
 };
 
+// === Game Over Screen ===
+var drawGameOver = function() {
+    background(30);
+    fill(255);
+    textAlign(CENTER, CENTER);
+    textSize(36);
+    text(winner + " WINS!", 200, 100);
+    fill(0, 200, 100);
+    rect(100, 200, 200, 50, 10);
+    fill(255);
+    textSize(20);
+    text("Play Again", 200, 225);
+    fill(0, 150, 255);
+    rect(100, 270, 200, 50, 10);
+    fill(255);
+    text("Main Menu", 200, 295);
+};
+
+// === Player Initialization ===
+var player1 = new Player(200, 350, 65, 68, 32, 270, color(0)); // A, D, Space
+var player2 = new Player(200, 50, LEFT, RIGHT, ENTER, 90, color(100));
+
+// === Mouse Handler ===
 mousePressed = function() {
-    if (state === "menu" && mouseX > 150 && mouseX < 250 && mouseY > 220 && mouseY < 270) {
-        state = "game";
+    if (state === "menu") {
+        if (mouseX > 150 && mouseX < 250 && mouseY > 220 && mouseY < 270) {
+            state = "game";
+        }
+    } else if (state === "gameover") {
+        if (mouseX > 100 && mouseX < 300 && mouseY > 200 && mouseY < 250) {
+            // Play again
+            player1 = new Player(200, 350, 65, 68, 32, 270, color(0));
+            player2 = new Player(200, 50, LEFT, RIGHT, ENTER, 90, color(100));
+            projectiles = [];
+            fireKeys = {};
+            winner = "";
+            state = "game";
+        }
+        if (mouseX > 100 && mouseX < 300 && mouseY > 270 && mouseY < 320) {
+            // Main Menu
+            player1 = new Player(200, 350, 65, 68, 32, 270, color(0));
+            player2 = new Player(200, 50, LEFT, RIGHT, ENTER, 90, color(100));
+            projectiles = [];
+            fireKeys = {};
+            winner = "";
+            state = "menu";
+        }
     }
 };
 
-// === Players ===
-var player1 = new Player(200, 350, 65, 68, 32, 270, color(0));       // A/D/Space
-var player2 = new Player(200, 50, LEFT, RIGHT, ENTER, 90, color(100)); // Arrows/Enter
-
-// === Game Loop ===
+// === Main Game Loop ===
 draw = function() {
     if (state === "menu") {
         drawMenu();
     } else if (state === "game") {
         background(255);
-
         player1.update();
         player2.update();
         player1.fire();
@@ -166,10 +212,32 @@ draw = function() {
         player1.draw();
         player2.draw();
 
-        for (var i = 0; i < projectiles.length; i++) {
+        for (var i = projectiles.length - 1; i >= 0; i--) {
             var p = projectiles[i];
             p.update();
             p.draw();
+            if (dist(p.x, p.y, player1.x, player1.y) < 30 && p.owner !== player1) {
+                player1.health = max(0, player1.health - 20);
+                p.owner.health = min(maxHealth, p.owner.health + 10);
+                projectiles.splice(i, 1);
+            } else if (dist(p.x, p.y, player2.x, player2.y) < 30 && p.owner !== player2) {
+                player2.health = max(0, player2.health - 20);
+                p.owner.health = min(maxHealth, p.owner.health + 10);
+                projectiles.splice(i, 1);
+            }
         }
+
+        drawHealthBar(10, 370, player1.health);
+        drawHealthBar(10, 10, player2.health);
+
+        if (player1.health <= 0) {
+            winner = "Player 2";
+            state = "gameover";
+        } else if (player2.health <= 0) {
+            winner = "Player 1";
+            state = "gameover";
+        }
+    } else if (state === "gameover") {
+        drawGameOver();
     }
 };
