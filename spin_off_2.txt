@@ -141,13 +141,54 @@ var drawMenu = function() {
     textAlign(CENTER, CENTER);
     textSize(36);
     fill(0);
-    text("Mundo Dodgeball", 200, 100);
+    text("HEARTBLAST", 200, 50);
+
+    // === Play Button ===
     fill(0, 150, 255);
-    rect(150, 220, 100, 50, 10);
+    rect(150, 310, 100, 50, 10);
     fill(255);
     textSize(20);
-    text("Play", 200, 245);
+    text("Play", 200, 330);
+
+    // === Instructions Title ===
+    textSize(18);
+    fill(0);
+    text("Instructions:", 200, 161);
+
+    // === Player 1 ===
+    var p1X = 80;
+    var p1Y = 170;
+    fill(0);
+    ellipse(p1X, p1Y, 50, 50);
+    stroke(0);
+    strokeWeight(3);
+    // var angle1 = toRadians(270); // upward
+    // line(p1X, p1Y, p1X + Math.cos(angle1) * 40, p1Y + Math.sin(angle1) * 40);
+
+    noStroke();
+    fill(0);
+    textSize(14);
+    textAlign(CENTER, TOP);
+    text("Player 1\n(Black)\nMove: A / D\nShoot: SPACE", p1X, p1Y + 35);
+
+    // === Player 2 ===
+    var p2X = 320;
+    var p2Y = 170;
+    fill(100);
+    ellipse(p2X, p2Y, 50, 50);
+    stroke(100);
+    strokeWeight(3);
+    var angle2 = toRadians(90); // downward
+    // line(p2X, p2Y, p2X + Math.cos(angle2) * 40, p2Y + Math.sin(angle2) * 40);
+
+    noStroke();
+    fill(0);
+    textSize(14);
+    textAlign(CENTER, TOP);
+    text("Player 2\n(Gray)\nMove: ← / →\nShoot: ENTER", p2X, p2Y + 35);
 };
+
+
 
 var drawBackground = function(){
     background(200, 230, 255); // light sky background
@@ -188,7 +229,7 @@ var player2 = new Player(200, 75, LEFT, RIGHT, ENTER, 90, color(100));
 // === Mouse Handler ===
 mousePressed = function() {
     if (state === "menu") {
-        if (mouseX > 150 && mouseX < 250 && mouseY > 220 && mouseY < 270) {
+        if (mouseX > 150 && mouseX < 250 && mouseY > 310 && mouseY < 360) {
             state = "game";
         }
     } else if (state === "gameover") {
