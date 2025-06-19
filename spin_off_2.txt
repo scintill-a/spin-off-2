@@ -127,7 +127,7 @@ Player.prototype.fire = function() {
                 var angle = this.baseAngle + this.indicator.angle;
                 projectiles.push(new Projectile(this.x, this.y, angle, this.color, this));
                 this.lastShotTime = now;
-                this.health = max(0, this.health - 10); // lose 10 HP on fire
+                this.health = max(1, this.health - 10); // lose 10 HP on fire
             }
         }
     } else {
@@ -149,6 +149,20 @@ var drawMenu = function() {
     text("Play", 200, 245);
 };
 
+var drawBackground = function(){
+    background(200, 230, 255); // light sky background
+
+    // Draw land areas
+    noStroke();
+    fill(100, 180, 100); // grassy green
+    rect(0, 0, 400, 125);    // Top land (player 2's side)
+    rect(0, 275, 400, 125);  // Bottom land (player 1's side)
+
+    // Draw river in the middle
+    fill(70, 130, 180); // river blue
+    rect(0, 125, 400, 150);  // Middle river  
+};
+
 // === Game Over Screen ===
 var drawGameOver = function() {
     background(30);
@@ -168,8 +182,8 @@ var drawGameOver = function() {
 };
 
 // === Player Initialization ===
-var player1 = new Player(200, 350, 65, 68, 32, 270, color(0)); // A, D, Space
-var player2 = new Player(200, 50, LEFT, RIGHT, ENTER, 90, color(100));
+var player1 = new Player(200, 325, 65, 68, 32, 270, color(0)); // A, D, Space
+var player2 = new Player(200, 75, LEFT, RIGHT, ENTER, 90, color(100));
 
 // === Mouse Handler ===
 mousePressed = function() {
@@ -180,8 +194,8 @@ mousePressed = function() {
     } else if (state === "gameover") {
         if (mouseX > 100 && mouseX < 300 && mouseY > 200 && mouseY < 250) {
             // Play again
-            player1 = new Player(200, 350, 65, 68, 32, 270, color(0));
-            player2 = new Player(200, 50, LEFT, RIGHT, ENTER, 90, color(100));
+            player1 = new Player(200, 325, 65, 68, 32, 270, color(0));
+            player2 = new Player(200, 75, LEFT, RIGHT, ENTER, 90, color(100));
             projectiles = [];
             fireKeys = {};
             winner = "";
@@ -189,8 +203,8 @@ mousePressed = function() {
         }
         if (mouseX > 100 && mouseX < 300 && mouseY > 270 && mouseY < 320) {
             // Main Menu
-            player1 = new Player(200, 350, 65, 68, 32, 270, color(0));
-            player2 = new Player(200, 50, LEFT, RIGHT, ENTER, 90, color(100));
+            player1 = new Player(200, 325, 65, 68, 32, 270, color(0));
+            player2 = new Player(200, 75, LEFT, RIGHT, ENTER, 90, color(100));
             projectiles = [];
             fireKeys = {};
             winner = "";
@@ -204,7 +218,8 @@ draw = function() {
     if (state === "menu") {
         drawMenu();
     } else if (state === "game") {
-        background(255);
+        drawBackground();
+        
         player1.update();
         player2.update();
         player1.fire();
