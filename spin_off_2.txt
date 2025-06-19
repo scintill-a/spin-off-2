@@ -10,6 +10,9 @@ var projectiles = [];
 var state = "menu";
 var winner = "";
 var maxHealth = 100;
+var countdown = 3;
+var countdownStartTime = 0;
+var player1, player2;
 
 // === Health Bar ===
 var drawHealthBar = function(x, y, health) {
@@ -100,15 +103,18 @@ Player.prototype.update = function() {
     }
 };
 Player.prototype.draw = function() {
-    fill(this.color);
-    ellipse(this.x, this.y, 50, 50);
     var angleDeg = this.baseAngle + this.indicator.angle;
     var angleRad = toRadians(angleDeg);
     var tipX = this.x + Math.cos(angleRad) * 60;
     var tipY = this.y + Math.sin(angleRad) * 60;
-    stroke(this.color);
-    strokeWeight(3);
+
+    stroke(255, 38, 38);
     line(this.x, this.y, tipX, tipY);
+
+    fill(this.color);
+    stroke(this.color);
+    ellipse(this.x, this.y, 50, 50);
+
     var now = millis();
     var remaining = this.cooldown - (now - this.lastShotTime);
     if (remaining > 0) {
@@ -127,7 +133,7 @@ Player.prototype.fire = function() {
                 var angle = this.baseAngle + this.indicator.angle;
                 projectiles.push(new Projectile(this.x, this.y, angle, this.color, this));
                 this.lastShotTime = now;
-                this.health = max(1, this.health - 10); // lose 10 HP on fire
+                this.health = max(1, this.health - 10);
             }
         }
     } else {
@@ -143,44 +149,30 @@ var drawMenu = function() {
     fill(0);
     text("HEARTBLAST", 200, 50);
 
-    // === Play Button ===
     fill(0, 150, 255);
     rect(150, 310, 100, 50, 10);
     fill(255);
     textSize(20);
     text("Play", 200, 330);
 
-    // === Instructions Title ===
     textSize(18);
     fill(0);
     text("Instructions:", 200, 161);
 
-    // === Player 1 ===
     var p1X = 80;
     var p1Y = 170;
     fill(0);
     ellipse(p1X, p1Y, 50, 50);
-    stroke(0);
-    strokeWeight(3);
-    // var angle1 = toRadians(270); // upward
-    // line(p1X, p1Y, p1X + Math.cos(angle1) * 40, p1Y + Math.sin(angle1) * 40);
-
     noStroke();
     fill(0);
     textSize(14);
     textAlign(CENTER, TOP);
     text("Player 1\n(Black)\nMove: A / D\nShoot: SPACE", p1X, p1Y + 35);
 
-    // === Player 2 ===
     var p2X = 320;
     var p2Y = 170;
     fill(100);
     ellipse(p2X, p2Y, 50, 50);
-    stroke(100);
-    strokeWeight(3);
-    var angle2 = toRadians(90); // downward
-    // line(p2X, p2Y, p2X + Math.cos(angle2) * 40, p2Y + Math.sin(angle2) * 40);
-
     noStroke();
     fill(0);
     textSize(14);
@@ -188,23 +180,16 @@ var drawMenu = function() {
     text("Player 2\n(Gray)\nMove: ← / →\nShoot: ENTER", p2X, p2Y + 35);
 };
 
-
-
-var drawBackground = function(){
-    background(200, 230, 255); // light sky background
-
-    // Draw land areas
+var drawBackground = function() {
+    background(200, 230, 255);
     noStroke();
-    fill(100, 180, 100); // grassy green
-    rect(0, 0, 400, 125);    // Top land (player 2's side)
-    rect(0, 275, 400, 125);  // Bottom land (player 1's side)
-
-    // Draw river in the middle
-    fill(70, 130, 180); // river blue
-    rect(0, 125, 400, 150);  // Middle river  
+    fill(100, 180, 100);
+    rect(0, 0, 400, 125);
+    rect(0, 275, 400, 125);
+    fill(70, 130, 180);
+    rect(0, 125, 400, 150);
 };
 
-// === Game Over Screen ===
 var drawGameOver = function() {
     background(30);
     fill(255);
@@ -222,30 +207,48 @@ var drawGameOver = function() {
     text("Main Menu", 200, 295);
 };
 
-// === Player Initialization ===
-var player1 = new Player(200, 325, 65, 68, 32, 270, color(0)); // A, D, Space
-var player2 = new Player(200, 75, LEFT, RIGHT, ENTER, 90, color(100));
+var drawCountdown = function() {
+    drawBackground();
+    player1.draw();
+    player2.draw();
 
-// === Mouse Handler ===
+    var elapsed = (millis() - countdownStartTime) / 1000;
+    var timeLeft = ceil(countdown - elapsed);
+
+    textAlign(CENTER, CENTER);
+    textSize(48);
+    fill(255, 0, 0);
+    text(timeLeft, 200, 200);
+
+    if (timeLeft <= 0) {
+        state = "game";
+    }
+};
+
+var player1 = new Player(200, 315, 65, 68, 32, 270, color(0));
+var player2 = new Player(200, 85, LEFT, RIGHT, ENTER, 90, color(100));
+
 mousePressed = function() {
     if (state === "menu") {
         if (mouseX > 150 && mouseX < 250 && mouseY > 310 && mouseY < 360) {
-            state = "game";
+            state = "countdown";
+            countdown = 3;
+            countdownStartTime = millis();
         }
     } else if (state === "gameover") {
         if (mouseX > 100 && mouseX < 300 && mouseY > 200 && mouseY < 250) {
-            // Play again
-            player1 = new Player(200, 325, 65, 68, 32, 270, color(0));
-            player2 = new Player(200, 75, LEFT, RIGHT, ENTER, 90, color(100));
+            player1 = new Player(200, 315, 65, 68, 32, 270, color(0));
+            player2 = new Player(200, 85, LEFT, RIGHT, ENTER, 90, color(100));
             projectiles = [];
             fireKeys = {};
             winner = "";
-            state = "game";
+            state = "countdown";
+            countdown = 3;
+            countdownStartTime = millis();
         }
         if (mouseX > 100 && mouseX < 300 && mouseY > 270 && mouseY < 320) {
-            // Main Menu
-            player1 = new Player(200, 325, 65, 68, 32, 270, color(0));
-            player2 = new Player(200, 75, LEFT, RIGHT, ENTER, 90, color(100));
+            player1 = new Player(200, 315, 65, 68, 32, 270, color(0));
+            player2 = new Player(200, 85, LEFT, RIGHT, ENTER, 90, color(100));
             projectiles = [];
             fireKeys = {};
             winner = "";
@@ -254,13 +257,13 @@ mousePressed = function() {
     }
 };
 
-// === Main Game Loop ===
 draw = function() {
     if (state === "menu") {
         drawMenu();
+    } else if (state === "countdown") {
+        drawCountdown();
     } else if (state === "game") {
         drawBackground();
-        
         player1.update();
         player2.update();
         player1.fire();
