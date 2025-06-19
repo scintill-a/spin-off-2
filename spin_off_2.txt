@@ -1,107 +1,209 @@
-// Player positions and velocities
-var x1 = 200, y1 = 350, vx1 = 0;
-var x2 = 200, y2 = 50, vx2 = 0;
-
-// Key tracking
-var keys = {};
-
-// Indicator data for both players
-var indicator1 = { angle: 0, direction: -1, range: 60, speed: 3 }; // swings from -90 to +90 (centered on 90°)
-var indicator2 = { angle: 0, direction: 1, range: 60, speed: 3 }; // same for top
-
+// === Utility ===
 var toRadians = function(deg) {
-return deg \* Math.PI / 180;
+    return deg * Math.PI / 180;
 };
 
+// === Global Variables ===
+var keys = {};
+var fireKeys = {};
+var projectiles = [];
 var state = "menu";
 
-mousePressed = function() {
-// If on menu screen and "Play" button is clicked
-if (state === "menu") {
-if (mouseX > 150 && mouseX < 250 && mouseY > 220 && mouseY < 270) {
-state = "game"; // start the game
-}
-}
+// === Health Bar System ===
+var maxHealth = 100;
+var player1Health = 100;
+var player2Health = 100;
+
+var drawHealthBar = function(x, y, health) {
+    var healthRatio = health / maxHealth;
+    var barW = 100;
+    var barH = 15;
+    var borderRadius = 8;
+
+    stroke(80, 255, 255);
+    strokeWeight(3);
+    fill(20, 20, 30);
+    rect(x, y, barW, barH, borderRadius);
+
+    noStroke();
+    fill(0, 255, 150, 60);
+    rect(x - 5, y - 5, barW + 10, barH + 10, borderRadius + 5);
+
+    var healthColor = lerpColor(color(255, 50, 50), color(0, 255, 100), healthRatio);
+    fill(healthColor);
+    rect(x, y, barW * healthRatio, barH, borderRadius);
+
+    fill(255);
+    textSize(16);
+    textAlign(CENTER, CENTER);
+    text(health + " / " + maxHealth + " HP", x + barW / 2, y + barH / 2);
 };
 
-var drawMenu = function() {
-background(220);
+// === Key Tracking ===
+keyPressed = function() {
+    keys[keyCode] = true;
+};
 
-    // Title
-    fill(0);
+keyReleased = function() {
+    keys[keyCode] = false;
+};
+
+// === Projectile Class ===
+var Projectile = function(x, y, angleDeg, color, owner) {
+    this.x = x;
+    this.y = y;
+    this.angleRad = toRadians(angleDeg);
+    this.speed = 5;
+    this.color = color;
+    this.owner = owner;
+};
+
+Projectile.prototype.update = function() {
+    this.x += Math.cos(this.angleRad) * this.speed;
+    this.y += Math.sin(this.angleRad) * this.speed;
+};
+
+Projectile.prototype.draw = function() {
+    fill(this.color);
+    noStroke();
+    ellipse(this.x, this.y, 10, 10);
+};
+
+// === Player Class ===
+var Player = function(x, y, leftKey, rightKey, fireKey, baseAngle, color) {
+    this.x = x;
+    this.y = y;
+    this.vx = 0;
+    this.leftKey = leftKey;
+    this.rightKey = rightKey;
+    this.fireKey = fireKey;
+    this.baseAngle = baseAngle;
+    this.color = color;
+
+    this.lastShotTime = -Infinity;
+    this.cooldown = 2000;
+
+    this.indicator = {
+        angle: 0,
+        direction: 1,
+        range: 60,
+        speed: 2
+    };
+};
+
+Player.prototype.update = function() {
+    if (keys[this.leftKey]) {
+        this.vx = -2;
+    } else if (keys[this.rightKey]) {
+        this.vx = 2;
+    } else {
+        this.vx = 0;
+    }
+
+    this.x = constrain(this.x + this.vx, 25, 375);
+
+    var ind = this.indicator;
+    ind.angle += ind.speed * ind.direction;
+    if (ind.angle > ind.range || ind.angle < -ind.range) {
+        ind.direction *= -1;
+    }
+};
+
+Player.prototype.draw = function() {
+    fill(this.color);
+    ellipse(this.x, this.y, 50, 50);
+
+    var angleDeg = this.baseAngle + this.indicator.angle;
+    var angleRad = toRadians(angleDeg);
+    var tipX = this.x + Math.cos(angleRad) * 60;
+    var tipY = this.y + Math.sin(angleRad) * 60;
+
+    stroke(this.color);
+    strokeWeight(3);
+    line(this.x, this.y, tipX, tipY);
+
+    var now = millis();
+    var remaining = this.cooldown - (now - this.lastShotTime);
+    if (remaining > 0) {
+        fill(255, 0, 0);
+        textAlign(CENTER);
+        textSize(12);
+        text("Cooldown", this.x, this.y - 35);
+    }
+};
+
+Player.prototype.fire = function() {
+    var now = millis();
+    if (keys[this.fireKey]) {
+        if (!fireKeys[this.fireKey]) {
+            fireKeys[this.fireKey] = true;
+
+            if (now - this.lastShotTime >= this.cooldown) {
+                var angle = this.baseAngle + this.indicator.angle;
+                projectiles.push(new Projectile(this.x, this.y, angle, this.color, this));
+                this.lastShotTime = now;
+            }
+        }
+    } else {
+        fireKeys[this.fireKey] = false;
+    }
+};
+
+// === Menu Screen ===
+var drawMenu = function() {
+    background(220);
     textAlign(CENTER, CENTER);
     textSize(36);
+    fill(0);
     text("Mundo Dodgeball", 200, 100);
 
-    // Play button
     fill(0, 150, 255);
-    rect(150, 220, 100, 50, 10); // rounded button
+    rect(150, 220, 100, 50, 10);
 
     fill(255);
     textSize(20);
     text("Play", 200, 245);
-
 };
 
-keyPressed = function() {
-keys[keyCode] = true;
-};
-
-keyReleased = function() {
-keys[keyCode] = false;
-};
-
-// Movement logic
-var updateMovement = function() {
-// Bottom player (A and D)
-vx1 = keys[65] ? -2 : keys[68] ? 2 : 0;
-
-    // Top player (Arrow keys)
-    vx2 = keys[LEFT] ? -2 : keys[RIGHT] ? 2 : 0;
-
-    x1 = constrain(x1 + vx1, 25, 375);
-    x2 = constrain(x2 + vx2, 25, 375);
-
-};
-
-// Indicator angle update
-var updateIndicator = function(ind) {
-ind.angle += ind.speed _ ind.direction;
-if (ind.angle > ind.range || ind.angle < -ind.range) {
-ind.direction _= -1;
-}
-};
-
-// Draw swinging line
-var drawIndicator = function(baseX, baseY, ind, baseAngle, colorVal) {
-var angleDeg = baseAngle + ind.angle; // baseAngle + swing offset
-var angleRad = toRadians(angleDeg);
-var tipX = baseX + Math.cos(angleRad) _ 60;
-var tipY = baseY + Math.sin(angleRad) _ 60;
-
-    stroke(colorVal);
-    strokeWeight(3);
-    line(baseX, baseY, tipX, tipY);
-
-};
-
-draw = function() {
-if (state === "menu") {
-drawMenu();
-} else if (state === "game"){
-background(255);
-
-    updateMovement();
-
-    // Draw players
-    fill(0); ellipse(x1, y1, 50, 50);
-    fill(100); ellipse(x2, y2, 50, 50);
-
-    updateIndicator(indicator1);
-    updateIndicator(indicator2);
-
-    drawIndicator(x1, y1, indicator1, 270, 0);   // Bottom: swing centered at 180°
-    drawIndicator(x2, y2, indicator2, 90, 100);
+mousePressed = function() {
+    if (state === "menu" && mouseX > 150 && mouseX < 250 && mouseY > 220 && mouseY < 270) {
+        state = "game";
     }
+};
 
+// === Players ===
+var player1 = new Player(200, 350, 65, 68, 32, 270, color(0));
+var player2 = new Player(200, 50, LEFT, RIGHT, ENTER, 90, color(100));
+
+// === Game Loop ===
+draw = function() {
+    if (state === "menu") {
+        drawMenu();
+    } else if (state === "game") {
+        background(255, 255, 255);
+
+        player1.update();
+        player2.update();
+        player1.fire();
+        player2.fire();
+        player1.draw();
+        player2.draw();
+
+        for (var i = projectiles.length - 1; i >= 0; i--) {
+            var p = projectiles[i];
+            p.update();
+            p.draw();
+
+            if (dist(p.x, p.y, player1.x, player1.y) < 30 && p.owner !== player1) {
+                player1Health = max(0, player1Health - 10);
+                projectiles.splice(i, 1);
+            } else if (dist(p.x, p.y, player2.x, player2.y) < 30 && p.owner !== player2) {
+                player2Health = max(0, player2Health - 10);
+                projectiles.splice(i, 1);
+            }
+        }
+
+        drawHealthBar(10, 370, player1Health);
+        drawHealthBar(10, 10, player2Health);
+    }
 };
