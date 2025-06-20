@@ -165,15 +165,19 @@ Player.prototype.draw = function() {
 
 Player.prototype.fire = function() {
     var now = millis(); 
-    
-    if (keys[this.fireKey]) {
-            if (now - this.lastShotTime >= this.cooldown) {
-                var angle = this.baseAngle + this.indicator.angle;
-                projectiles.push(new Projectile(this.x, this.y, angle, color(0), this));
-                this.lastShotTime = now;
-                this.health = max(1, this.health - 10);
-            }
+
+    if (now - this.lastShotTime <= this.cooldown) {
+        return;
+}
+    if (!keys[this.fireKey]) {
+        return;
     } 
+    
+    var angle = this.baseAngle + this.indicator.angle;
+    projectiles.push(new Projectile(this.x, this.y, angle, color(0), this));
+    this.lastShotTime = now;
+    this.health = max(1, this.health - 10);
+    
 };
 
 // === Menu Screen ===
